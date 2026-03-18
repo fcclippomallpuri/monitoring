@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Equipment Monitoring - NOC</title>
+<title>SCADA Monitoring</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -11,88 +11,97 @@
 body {
   background: #f4f6f9;
   font-family: 'Segoe UI', sans-serif;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
-@media (max-width: 768px) {
-  body { overflow-y: auto; }
-}
-
+/* HEADER */
 .header {
   background: white;
-  padding: 12px 15px;
+  padding: 10px 15px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
   border-bottom: 1px solid #ddd;
 }
 
 .online { color: #28a745; font-weight: bold; }
 .offline { color: red; font-weight: bold; }
 
+/* SCADA BAR */
+.scada-bar {
+  display: flex;
+  background: #0f172a;
+  color: white;
+  border-radius: 12px;
+  padding: 10px;
+  overflow-x: auto;
+}
+
+.scada-item {
+  flex: 1;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.scada-item:last-child { border-right: none; }
+
+.scada-item span {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.scada-item b {
+  font-size: 18px;
+}
+
+.scada-safe { color: #00e676; }
+.scada-warning { color: #ffab00; }
+.scada-danger { color: #ff1744; text-shadow:0 0 10px red; }
+
+/* CARD */
 .card-pro {
   background: white;
-  border-radius: 15px;
-  padding: 15px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
 }
 
 .card-pro.alert {
   border: 2px solid red;
-  animation: blink 0s infinite;
+  animation: blink 1s infinite;
 }
 
 @keyframes blink {
   50% { opacity: 0.6; }
 }
 
-.update {
-  font-size: 12px;
-  font-weight: bold;
+.update { font-size: 12px; }
+
+/* DASHBOARD */
+#dashboard {
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-bottom: 60px;
+  touch-action: pan-y;
 }
 
-.slide-enter {
-  animation: slideIn 0.4s ease;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(40px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-.dots {
-  text-align: center;
-  margin-top: 10px;
-}
-
+/* DOT */
+.dots { text-align:center; margin-top:10px; }
 .dot {
-  height: 10px;
-  width: 10px;
-  margin: 0 3px;
-  background-color: #bbb;
-  border-radius: 50%;
-  display: inline-block;
+  height:8px;width:8px;margin:3px;
+  background:#bbb;border-radius:50%;display:inline-block;
 }
+.dot.active { background:#333; }
 
-.dot.active {
-  background-color: #333;
-}
-
+/* FOOTER */
 .footer {
   position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: #ffffff;
-  text-align: center;
-  padding: 6px;
-  font-size: 12px;
-  color: #666;
-  border-top: 1px solid #ddd;
-}
-
-#dashboard {
-  padding-bottom: 50px;
-  touch-action: pan-y;
+  bottom:0;
+  width:100%;
+  background:#fff;
+  text-align:center;
+  font-size:12px;
+  padding:5px;
+  border-top:1px solid #ddd;
 }
 </style>
 </head>
@@ -100,16 +109,47 @@ body {
 <body>
 
 <div class="header">
-  <b>⚡ EQUIPMENT MONITORING</b>
+  <b>⚡ SCADA MONITORING</b>
   <div>
-    <span id="statusInternet" class="online me-3">● ONLINE</span>
-    <button id="btnFullscreen" onclick="toggleFullscreen()" class="btn btn-sm btn-dark">
-      ⛶ Fullscreen
-    </button>
+    <span id="statusInternet" class="online me-2">● ONLINE</span>
+    <button onclick="toggleFullscreen()" class="btn btn-sm btn-dark">⛶</button>
   </div>
 </div>
 
-<div class="container mt-3" id="dashboard">
+<!-- SCADA SUMMARY -->
+<div class="container mt-2">
+  <div class="scada-bar">
+
+    <div class="scada-item">
+      <span>TOTAL</span>
+      <b id="sumTotal">0</b>
+    </div>
+
+    <div class="scada-item">
+      <span>BAIK</span>
+      <b id="sumBaik" style="color:#00c853">0</b>
+    </div>
+
+    <div class="scada-item">
+      <span>PROGRES</span>
+      <b id="sumProgres" style="color:#ffab00">0</b>
+    </div>
+
+    <div class="scada-item">
+      <span>RUSAK</span>
+      <b id="sumRusak" style="color:#ff1744">0</b>
+    </div>
+
+    <div class="scada-item">
+      <span>ISSUE</span>
+      <b id="sumPersen">0%</b>
+    </div>
+
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="container mt-2" id="dashboard">
   <div class="row" id="container"></div>
   <div class="dots" id="dots"></div>
 </div>
@@ -122,187 +162,158 @@ body {
 const API_URL = "https://script.google.com/macros/s/AKfycbyk7ppqUa3JDykkhPzUyBuO1phbn1ipP6ng7d-8mkSiqvdtyquph6QA19UT4emihGM/exec";
 
 let allData = [];
-let lastDataString = "";
+let lastData = "";
 let currentPage = 0;
 const itemsPerPage = 8;
-let slideInterval;
 let isPaused = false;
 
-// LOAD DATA
-function loadData() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
+/* LOAD */
+function loadData(){
+ fetch(API_URL)
+ .then(res=>res.json())
+ .then(data=>{
+   setOnlineStatus(true);
 
-      setOnlineStatus(true);
+   data.sort((a,b)=>b.rusak-a.rusak);
 
-      data.sort((a, b) => b.rusak - a.rusak);
+   let str = JSON.stringify(data);
+   if(str===lastData) return;
+   lastData = str;
 
-      let newDataString = JSON.stringify(data);
-      if (newDataString === lastDataString) return;
+   allData = data;
 
-      lastDataString = newDataString;
-      allData = data;
-
-      renderPage();
-      renderDots();
-    })
-    .catch(() => setOnlineStatus(false));
+   renderSummary(data);
+   renderPage();
+   renderDots();
+ })
+ .catch(()=>setOnlineStatus(false));
 }
 
-// RENDER
-function renderPage() {
-  let container = document.getElementById("container");
-  container.innerHTML = "";
+/* SUMMARY */
+function renderSummary(data){
+ let total=0,baik=0,progres=0,rusak=0;
 
-  let start = currentPage * itemsPerPage;
-  let pageData = allData.slice(start, start + itemsPerPage);
+ data.forEach(i=>{
+   total+=Number(i.jumlah)||0;
+   baik+=Number(i.baik)||0;
+   progres+=Number(i.progres)||0;
+   rusak+=Number(i.rusak)||0;
+ });
 
-  pageData.forEach(item => {
+ let persen = total>0 ? Math.round(((progres+rusak)/total)*100) : 0;
 
-    let total = Number(item.jumlah) || 0;
-    let baik = Number(item.baik) || 0;
-    let progres = Number(item.progres) || 0;
-    let rusak = Number(item.rusak) || 0;
+ document.getElementById("sumTotal").innerText=total;
+ document.getElementById("sumBaik").innerText=baik;
+ document.getElementById("sumProgres").innerText=progres;
+ document.getElementById("sumRusak").innerText=rusak;
 
-    let warna = rusak > 0 ? "danger" : "success";
-    let alertClass = rusak > 0 ? "alert" : "";
+ let el=document.getElementById("sumPersen");
+ el.innerText=persen+"%";
+ el.className="";
 
-    let warnaUpdate = "gray";
-    if (item.status_hari === "hari_ini") warnaUpdate = "green";
-    else if (item.status_hari === "kemarin") warnaUpdate = "orange";
-
-    let card = `
-    <div class="col-6 col-md-4 col-lg-3 mb-3 slide-enter">
-      <div class="card-pro ${alertClass}">
-
-        <h6>${item.nama}</h6>
-
-        <span class="badge bg-${warna}">
-          ${rusak > 0 ? "RUSAK" : (progres > 0 ? "PROGRES" : "NORMAL")}
-        </span>
-
-        <hr>
-
-        <div class="row text-center">
-          <div class="col-6">
-            <small>Total</small>
-            <h5>${total}</h5>
-          </div>
-          <div class="col-6">
-            <small>Baik</small>
-            <h5 style="color:green">${baik}</h5>
-          </div>
-          <div class="col-6 mt-2">
-            <small>Progres</small>
-            <h5 style="color:orange">${progres}</h5>
-          </div>
-          <div class="col-6 mt-2">
-            <small>Rusak</small>
-            <h5 style="color:red">${rusak}</h5>
-          </div>
-        </div>
-
-        <div class="update mt-2" style="color:${warnaUpdate}">
-          Update: ${item.update}
-        </div>
-
-      </div>
-    </div>
-    `;
-
-    container.innerHTML += card;
-  });
-
-  updateDots();
+ if(persen>10) el.classList.add("scada-danger");
+ else if(persen>5) el.classList.add("scada-warning");
+ else el.classList.add("scada-safe");
 }
 
-// DOTS
-function renderDots() {
-  let totalPage = Math.ceil(allData.length / itemsPerPage);
-  let dotsContainer = document.getElementById("dots");
-  dotsContainer.innerHTML = "";
+/* CARD */
+function renderPage(){
+ let c=document.getElementById("container");
+ c.innerHTML="";
 
-  for (let i = 0; i < totalPage; i++) {
-    dotsContainer.innerHTML += `<span class="dot" id="dot-${i}"></span>`;
-  }
+ let start=currentPage*itemsPerPage;
+ let page=allData.slice(start,start+itemsPerPage);
+
+ page.forEach(i=>{
+   let total=i.jumlah||0;
+   let baik=i.baik||0;
+   let progres=i.progres||0;
+   let rusak=i.rusak||0;
+
+   let persen = total>0 ? Math.round(((progres+rusak)/total)*100):0;
+
+   let card=`
+   <div class="col-6 col-md-3 mb-3">
+     <div class="card-pro ${rusak>0?'alert':''}">
+       <b>${i.nama}</b>
+       <hr>
+       <div class="row text-center">
+         <div class="col-6"><small>Total</small><h6>${total}</h6></div>
+         <div class="col-6"><small>Baik</small><h6 style="color:green">${baik}</h6></div>
+         <div class="col-6"><small>Progres</small><h6 style="color:orange">${progres}</h6></div>
+         <div class="col-6"><small>Rusak</small><h6 style="color:red">${rusak}</h6></div>
+       </div>
+       <small>${persen}% issue</small>
+       <div class="update">${i.update}</div>
+     </div>
+   </div>`;
+   c.innerHTML+=card;
+ });
+
+ updateDots();
 }
 
-function updateDots() {
-  let totalPage = Math.ceil(allData.length / itemsPerPage);
-  for (let i = 0; i < totalPage; i++) {
-    let dot = document.getElementById("dot-" + i);
-    if (dot) dot.classList.toggle("active", i === currentPage);
-  }
+/* DOT */
+function renderDots(){
+ let totalPage=Math.ceil(allData.length/itemsPerPage);
+ let d=document.getElementById("dots");
+ d.innerHTML="";
+ for(let i=0;i<totalPage;i++){
+   d.innerHTML+=`<span class="dot" id="dot-${i}"></span>`;
+ }
+}
+function updateDots(){
+ let totalPage=Math.ceil(allData.length/itemsPerPage);
+ for(let i=0;i<totalPage;i++){
+   let dot=document.getElementById("dot-"+i);
+   if(dot) dot.classList.toggle("active",i===currentPage);
+ }
 }
 
-// AUTO SLIDE
-function startSlide() {
-  slideInterval = setInterval(() => {
-    if (isPaused || allData.length === 0) return;
+/* SLIDE */
+setInterval(()=>{
+ if(isPaused || allData.length==0) return;
+ let totalPage=Math.ceil(allData.length/itemsPerPage);
+ currentPage=(currentPage+1)%totalPage;
+ renderPage();
+},10000);
 
-    let totalPage = Math.ceil(allData.length / itemsPerPage);
-    currentPage = (currentPage + 1) % totalPage;
+/* SWIPE */
+let startX=0;
+const dash=document.getElementById("dashboard");
 
-    renderPage();
-  }, 10000);
-}
+dash.addEventListener("touchstart",e=>{
+ startX=e.touches[0].clientX;
+ isPaused=true;
+});
+dash.addEventListener("touchend",e=>{
+ let endX=e.changedTouches[0].clientX;
+ let diff=startX-endX;
+ let totalPage=Math.ceil(allData.length/itemsPerPage);
 
-// HOVER PAUSE
-document.getElementById("dashboard").addEventListener("mouseenter", () => isPaused = true);
-document.getElementById("dashboard").addEventListener("mouseleave", () => isPaused = false);
-
-// SWIPE
-let touchStartX = 0;
-let touchEndX = 0;
-
-const dashboard = document.getElementById("dashboard");
-
-dashboard.addEventListener("touchstart", (e) => {
-  touchStartX = e.changedTouches[0].screenX;
-  isPaused = true;
+ if(Math.abs(diff)>50){
+   currentPage = diff>0 ? (currentPage+1)%totalPage : (currentPage-1+totalPage)%totalPage;
+   renderPage();
+ }
+ setTimeout(()=>isPaused=false,2000);
 });
 
-dashboard.addEventListener("touchend", (e) => {
-  touchEndX = e.changedTouches[0].screenX;
-  handleSwipe();
-  setTimeout(() => isPaused = false, 3000);
-});
-
-function handleSwipe() {
-  let diff = touchStartX - touchEndX;
-  if (Math.abs(diff) < 50) return;
-
-  let totalPage = Math.ceil(allData.length / itemsPerPage);
-
-  if (diff > 0) currentPage = (currentPage + 1) % totalPage;
-  else currentPage = (currentPage - 1 + totalPage) % totalPage;
-
-  renderPage();
+/* STATUS */
+function setOnlineStatus(x){
+ let el=document.getElementById("statusInternet");
+ el.innerHTML = x ? "● ONLINE" : "● OFFLINE";
+ el.className = x ? "online me-2" : "offline me-2";
 }
 
-// STATUS INTERNET
-function setOnlineStatus(isOnline) {
-  const el = document.getElementById("statusInternet");
-  el.innerHTML = isOnline ? "● ONLINE" : "● OFFLINE";
-  el.className = isOnline ? "online me-3" : "offline me-3";
+/* FULLSCREEN */
+function toggleFullscreen(){
+ if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+ else document.exitFullscreen();
 }
 
-// FULLSCREEN
-function toggleFullscreen() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-  else document.exitFullscreen();
-}
-
-document.addEventListener("fullscreenchange", () => {
-  document.getElementById("btnFullscreen").innerHTML =
-    document.fullscreenElement ? "❌ Exit" : "⛶ Fullscreen";
-});
-
-// INIT
+/* INIT */
 loadData();
-startSlide();
-setInterval(loadData, 5000);
+setInterval(loadData,5000);
 </script>
 
 </body>
