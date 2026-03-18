@@ -109,7 +109,7 @@ body {
 <body>
 
 <div class="header">
-  <b>⚡ SCADA MONITORING</b>
+  <b>⚡ EQUIPMENT MONITORING</b>
   <div>
     <span id="statusInternet" class="online me-2">● ONLINE</span>
     <button onclick="toggleFullscreen()" class="btn btn-sm btn-dark">⛶</button>
@@ -136,7 +136,7 @@ body {
     </div>
 
     <div class="scada-item">
-      <span>RUSAK</span>
+      <span>RUSAK</span><br>
       <b id="sumRusak" style="color:#ff1744">0</b>
     </div>
 
@@ -243,8 +243,7 @@ function renderPage(){
          <div class="col-6"><small>Progres</small><h6 style="color:orange">${progres}</h6></div>
          <div class="col-6"><small>Rusak</small><h6 style="color:red">${rusak}</h6></div>
        </div>
-       <small>${persen}% issue</small>
-       <div class="update">${i.update}</div>
+       <small>${persen}% issue</small><div class="update">${i.update}</div>
      </div>
    </div>`;
    c.innerHTML+=card;
